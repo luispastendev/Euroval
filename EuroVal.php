@@ -14,22 +14,18 @@ class EUROVAL{
 	
 	/**
 	 * Funcion principal para correr los metodos de filtrado y validado
-	 * @param  mixed $input        	  Dato del formulario
+	 * @param  string $field          Nombre del campo
+	 * @param  mixed  $data        	  Dato del formulario
 	 * @param  array  $validaciones   Array de validaciones a realizar
 	 * @param  array  $filtros        Array de filtros a realizar		
 	 * @return mixed                  Retorna verdadero si se cumplio o array con errores si ha fallado
 	 */
-	public function run($input, array $validaciones, array $filtros){
-		if(!isset($_POST[$input])){
-			$this->errors[] = array(
-				'error' => 'undefined');
-			return $this->getErrors($this->errors);
-		}
+	public function run($field, $data, array $validaciones, array $filtros){
+		unset($this->errors);
 		$this->validadores = $validaciones;
 		$this->filtros = $filtros;
-		$campo = $_POST[$input];
-		$data = $this->filtrar($campo, $this->filtros);
-		if($this->validar($data, $this->validadores) === false){
+		$filter_data = $this->filtrar($data ,$this->filtros);
+		if($this->validar($filter_data, $field, $this->validadores) === false){
 			return $this->getErrors($this->errors);
 		}
 		return true;
@@ -55,15 +51,16 @@ class EUROVAL{
 
 	/**
 	 * Funcion para aplicar los filtros de validacion requeridos
-	 * @param  mixed $input        Dato del formulario
-	 * @param  array  $validadores Contiene todos los validadores
-	 * @param  array $params       Contiene los parametros en caso de existir
-	 * @return mixed               Retorna true si los datos son correctos o un array si existio algun error.
+	 * @param  mixed  $input        Dato del formulario
+	 * @param  string $field        Nombre del campo
+	 * @param  array  $validadores  Contiene todos los validadores
+	 * @param  array  $params       Contiene los parametros en caso de existir
+	 * @return mixed                Retorna true si los datos son correctos o un array si existio algun error.
 	 */
-	protected function validar($input, array $validadores, $params = NULL){
-
+	protected function validar($input, $field, array $validadores, $params = NULL){
+		$this->errors = array();
 		if (in_array('required', $validadores) && trim(empty($input)) || is_null(trim($input))) { // ¿el campo es requerido?
-			$this->errors[] = $this->required($input);
+			$this->errors[] = $this->required($input,$field,$params);
 		}else{
 			foreach($validadores as $validador){
 				$vali = NULL;
@@ -74,16 +71,16 @@ class EUROVAL{
 	 				$method = $vali[0];
 	 				$params = $vali[1];
 	 				if(is_callable(array($this,$method))){
-	 					$resp = $this->$method($input,$params);
+	 					$resp = $this->$method($input,$field,$params);
 	 					if(is_array($resp)){
 	 						$this->errors[] = $resp;
-	 					}
+	 					}	 					
 	 				}else{
 	 					throw new Exception('No existe el validador');
 	 				}
-				}else{
+				}else{ // Cuando no tiene parametros
 					if(is_callable(array($this,$validador))){
-						$resp = $this->$validador($input);
+						$resp = $this->$validador($input,$field);
 						if(is_array($resp)){
 							$this->errors[] = $resp;
 						}
@@ -102,60 +99,180 @@ class EUROVAL{
 	
 	/**
 	 * Funcion que verifica si el campo no es vacio o nulo
-	 * @param  Mixed $input Dato del formulario
-	 * @return Mixed        Regresa true si no es vacio de lo contrario un array de error
+	 * @param  Mixed  $input    Dato del formulario
+	 * @param  string $field    Nombre del campo
+	 * @param  array  $params   Parametros
+	 * @return Mixed            Regresa true si no es vacio de lo contrario un array de error
 	 */
-	protected function required($input){
+	protected function required($input, $field, $params = null){
 		if(!is_null(trim($input)) && !trim(empty($input))){
 			return true;
 		}else{
 			return array(
-				'error' => 'required');
+				'error' => 'required',
+				'field' => $field);
 		}
 	}
 
 	/**
 	 * Funcion que verifica que el texto es de tipo alphanumerico								
-	 * @param  mixed $dato  Dato del formulario
-	 * @return mixed        True o array de errores
+	 * @param  Mixed  $input    Dato del formulario
+	 * @param  string $field    Nombre del campo
+	 * @param  array  $params   Parametros
+	 * @return mixed            True o array de errores
 	 */
-	protected function alpha_numeric($dato = null){
-		if(preg_match("/^([a-z0-9ÀÁÂÃÄÅÇÈÉÊËÌÍÎÏÒÓÔÕÖÙÚÛÜÝàáâãäåçèéêëìíîïðòóôõöùúûüýÿ])+$/i", $dato)){
+	protected function alpha_numeric($input, $field, $params = null){
+		if(preg_match("/^([a-z0-9ÀÁÂÃÄÅÇÈÉÊËÌÍÎÏÒÓÔÕÖÙÚÛÜÝàáâãäåçèéêëìíîïðòóôõöùúûüýÿ])+$/i", $input)){
 			return true;	
 		}else{
 			return array(
-				'error' => 'alpha_numeric');			
+				'error' => 'alpha_numeric',
+				'field' => $field);			
 		}		
 	}
 
 	/**
 	 * El texto tiene que ser alfanumerico con posibilidad de introducir espacios
-	 * @param  mixed $dato Dato del formulario
+	 * @param  Mixed  $input    Dato del formulario
+	 * @param  string $field    Nombre del campo
+	 * @param  array  $params   Parametros
 	 * @return mixed       True o array de errores  
 	 */	
-	protected function alpha_spaces($dato = null){
-		if (preg_match("/^([a-z0-9ÀÁÂÃÄÅÇÈÉÊËÌÍÎÏÒÓÔÕÖÙÚÛÜÝàáâãäåçèéêëìíîïðòóôõöùúûüýÿ\s])+$/i", $dato)) {
+	protected function alpha_spaces($input, $field, $params = null){
+		if (preg_match("/^([a-z0-9ÀÁÂÃÄÅÇÈÉÊËÌÍÎÏÒÓÔÕÖÙÚÛÜÝàáâãäåçèéêëìíîïðòóôõöùúûüýÿ\s])+$/i", $input)){
 			return true;
 		}else{
 			return array(
-				'error' => 'alpha_spaces');
+				'error' => 'alpha_spaces',
+				'field' => $field);
+		}
+	}
+
+	 /**
+	  * Campos de solo Letras
+	  * @param  Mixed  $input   Dato del formulario
+	  * @param  string $field   Nombre del campo
+	  * @param  array  $params  Parametros
+	  * @return Mixed           True o array de errores
+	  */
+	protected function alphabetic($input, $field, $params = null){
+		if (preg_match("/^([a-zÀÁÂÃÄÅÇÈÉÊËÌÍÎÏÒÓÔÕÖÙÚÛÜÝàáâãäåçèéêëìíîïðòóôõöùúûüýÿ\s])+$/i", $input)){
+			return true;
+		}else{
+			return array(
+				'error' => 'alphabetic',
+				'field' => $field);
 		}
 	}
 
 	/**
 	 * Verifica longitud minima de una cadena
-	 * @param  mixed $input  Dato del formulario
-	 * @param  int $params   Numero minimo de caracteres
-	 * @return mixed         True si cuenta con longitud minima. de lo contrario array de error
+	 * @param  Mixed  $input    Dato del formulario
+	 * @param  string $field    Nombre del campo
+	 * @param  array  $params   Parametros
+	 * @return mixed            True si cuenta con longitud minima. de lo contrario array de error
 	 */
-	protected function min_len($input,$params){
+	protected function min_len($input, $field, $params = null){
 		if(mb_strlen($input) >= (int)$params){
 			return true;
 		}else{
 			return array(
 				'error' => 'min_len',
-				'len' => $params);
+				'len' => $params,
+				'field' => $field);
 		}
+	}
+
+	/**
+	 * Verifica longitud maxima de una cadena
+	 * @param  Mixed  $input   Dato del formulario
+	 * @param  string $field   Nombre del campo
+	 * @param  array  $params  Parametros
+	 * @return mixed           True o Array
+	 */
+	protected function max_len($input, $field, $params = null){
+		if(mb_strlen($input) <= (int)$params){
+			return true;
+		}else{
+			return array(
+				'error' => 'max_len',
+				'len' => $params,
+				'field' => $field);
+		}	
+	}
+
+	/**
+	 * Validacion de solo numeros enteros
+	 * @param  Mixed   $input   Dato del formulario
+	 * @param  String  $field   Nombre del campo
+	 * @param  Array   $params  Parametros
+	 * @return Mixed         	True o array
+	 */
+	protected function integer($input, $field, $params = null){
+		if(filter_var($input, FILTER_VALIDATE_INT)){
+			return true;
+		}else{
+			return array(
+				'error' => 'integer',
+				'field'	=> $field
+				);
+		}
+	}
+
+	/**
+	 * Validacion de numeros decimales
+	 * @param  mixed  $input   Dato del formulario
+	 * @param  string $field   Nombre del campo
+	 * @param  array  $params  Parametros
+	 * @return mixed           True o array
+	 */
+	protected function float($input, $field, $params = null){
+		if(filter_var($input, FILTER_VALIDATE_FLOAT)){
+			return true;
+		}else{
+			return array(
+				'error' => 'float',
+				'field' => $field
+				);
+		}
+
+	}
+
+	/**
+	 * Verifica direcciones de email validas
+	 * @param  mixed   $input   Dato del formulario
+	 * @param  string  $field   Nombre del campo
+	 * @param  array   $params  Parametros
+	 * @return mixed            True o array
+	 */
+	protected function email($input, $field, $params = null){
+		if(filter_var($input, FILTER_VALIDATE_EMAIL)){
+			return true;
+		}else{
+			return array(
+				'error' => 'email',
+				'field' => $field
+				);
+		}
+	}
+
+	/**
+	 * Valida fechas validas y en formato correcto
+	 * @param  mixed   $input   Dato de formulario
+	 * @param  string  $field   Nombre del campo
+	 * @param  string  $params  Formato de fecha
+	 * @return mixed            True o array de errores
+	 */
+	protected function date($input, $field, $params = 'Y-m-d H:i:s'){
+    	$date = DateTime::createFromFormat($params, $input);
+    	if($date && $date->format($params) == $input){
+    		return true;
+    	}else{
+    		return array(
+    			'error' => 'date',
+    			'field' => $field
+    			);
+    	}
 	}
 
 	/*--------------------------------------------------------------------*/
@@ -163,14 +280,41 @@ class EUROVAL{
 	/*--------------------------------------------------------------------*/
 
 	/**
-	 * Fusion que sanea las variables de tipo string quitando caracteres especiales
+	 * Funcion que sanea las variables de tipo string quitando caracteres especiales
 	 * @param  string $input Dato del formulario 
 	 * @return string        Dato saneado
 	 */
-	protected function sanitize_string($input){
+	protected function filter_string($input){
 		return filter_var(trim($input),FILTER_SANITIZE_STRING);
 	}	
 
+	/**
+	 * Sanea variables que contengan tags html conviertiendolas en entidades de texto
+	 * @param  mixed   $input   Dato del formulario
+	 * @return string           Dato saneado
+	 */
+	protected function filter_htmlencode($input){
+		return filter_var(trim($input), FILTER_SANITIZE_SPECIAL_CHARS);
+	}
+
+	/**
+	 * Sanea variables con formato email
+	 * @param  mixed  $input Dato del formulario
+	 * @return string        Dato saneado
+	 */
+	protected function filter_email($input){
+		return filter_var(trim($input), FILTER_SANITIZE_EMAIL);
+	}
+
+	/**
+	 * Sanea variables de tipo numero
+	 * @param  mixed  $input Dato del formulario
+	 * @return string        Dato saneado
+	 */
+	protected function filter_numbers($input){
+		return filter_var($input, FILTER_SANITIZE_NUMBER_INT);
+	}
+	
 	/*--------------------------------------------------------------------*/
 	/*------------------------------ERRORES-------------------------------*/
 	/*--------------------------------------------------------------------*/
@@ -184,25 +328,39 @@ class EUROVAL{
 		$resp = array();
 		foreach ($errors as $val) {
 			switch($val['error']){
-				case 'undefined':
-					$resp[] = 'El campo no esta definido';
-				break;
 				case 'required':
-					$resp[] = 'El campo es requerido';
+					$resp[$val['error']] = 'El campo '.$val['field']. ' es requerido';
 				break;
 				case 'min_len':
-					$resp[] = 'La longitud del campo no puede ser menor a ' .$val['len']. ' caracteres';
+					$resp[$val['error']] = 'La longitud del campo '.$val['field'].' no puede ser menor a ' .$val['len']. ' caracteres';
+				break;
+				case 'max_len':
+					$resp[$val['error']] = 'La longitud del campo '.$val['field'].' no puede ser mayor a ' .$val['len']. ' caracteres';					
 				break;
 				case 'alpha_numeric':
-					$resp[] = 'El campo solo puede contener caracteres alfanumericos';
+					$resp[$val['error']] = 'El campo '.$val['field'].' solo puede contener caracteres alfanumericos';
 				break;
 				case 'alpha_spaces':
-					$resp[] = 'El campo solo puede contener caracteres alfanumericos con espacios';
+					$resp[$val['error']] = 'El campo '.$val['field'].' solo puede contener caracteres alfanumericos con espacios';
+				break;
+				case 'alphabetic':
+					$resp[$val['error']] = 'El campo '.$val['field'].' solo puede contener letras';
+				break;
+				case 'integer':
+					$resp[$val['error']] = 'El campo '.$val['field'].' solo puede contener numeros enteros';
+				break;
+				case 'float':
+					$resp[$val['error']] = 'El campo '.$val['field'].' solo puede contener numeros enteros o decimales';
+				break;
+				case 'email':
+					$resp[$val['error']] = 'El campo '.$val['field'].' contiene una direccion de email invalida';
+				break;
+				case 'date':
+					$resp[$val['error']] = 'El campo '.$val['field'].' tiene un formato incorrecto';
 				break;
 			}	
 		}
 		return $resp;
 	}
 }
-
  ?>
