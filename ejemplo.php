@@ -6,12 +6,11 @@ isset($_POST['nombre']) ? $_POST['nombre'] : exit; // Validando que la data exis
 try { // Usar try - catch para agarrar las posibles excepciones emitidas por la libreria
 	
 	$nombre = $euroval->run(
-		'Nombre',  									  // Nombre del campo    						 			  // Dato a validar
-		$_POST['nombre'],							  // Datos
-		array('required','alphabetic','min_len,4'),   // Validaciones
-		array('filter_string') 				      	  // Filtros
+		'Nombre', // Nombre del campo    						 			 
+		$_POST['nombre'], // Dato a validar
+		array('required','alphabetic','min_len,4'), // Validaciones
+		array('filter_string') // Filtros
 		);
-	// echo var_dump($nombre); // Array de respuestas
 	if($nombre == true){	
 		echo "El campo nombre es correcto";
 	}else{
