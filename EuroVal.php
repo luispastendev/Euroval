@@ -18,7 +18,7 @@ class EUROVAL{
 	 * @param  mixed  $data        	  Dato del formulario
 	 * @param  array  $validaciones   Array de validaciones a realizar
 	 * @param  array  $filtros        Array de filtros a realizar		
-	 * @return mixed                  Retorna verdadero si se cumplio o array con errores si ha fallado
+	 * @return mixed                  Retorna true o false
 	 */
 	public function run($field, $data, array $validaciones, array $filtros){
 		unset($this->errors);
@@ -26,7 +26,8 @@ class EUROVAL{
 		$this->filtros = $filtros;
 		$filter_data = $this->filtrar($data ,$this->filtros);
 		if($this->validar($filter_data, $field, $this->validadores) === false){
-			return $this->getErrors($this->errors);
+			return false;
+			//return $this->getErrors($this->errors);
 		}
 		return true;
 	}
@@ -314,7 +315,7 @@ class EUROVAL{
 	protected function filter_numbers($input){
 		return filter_var($input, FILTER_SANITIZE_NUMBER_INT);
 	}
-	
+
 	/*--------------------------------------------------------------------*/
 	/*------------------------------ERRORES-------------------------------*/
 	/*--------------------------------------------------------------------*/
@@ -324,9 +325,9 @@ class EUROVAL{
 	 * @param  array  $errors Array de errores y parametros necesarios
 	 * @return Array          Regresa un array con los mensajes de error legibles
 	 */
-	protected function getErrors(array $errors){
+	public function getErrors(){
 		$resp = array();
-		foreach ($errors as $val) {
+		foreach ($this->errors as $val) {
 			switch($val['error']){
 				case 'required':
 					$resp[$val['error']] = 'El campo '.$val['field']. ' es requerido';
