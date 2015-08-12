@@ -18,7 +18,9 @@ isset($_POST['campo']) ? $_POST['campo'] : exit;
 ```
 
 ## Ejemplo
-El siguiente ejemplo muestra la validación de un campo de texto mediante la librería
+El siguiente ejemplo muestra la validación de un campo de texto mediante la librería como se puede observar
+la libreria validara los datos con los filtros y validadores requeridos, en caso de que la validación fallara
+la librería devolverá un array con los errores encontrados o en caso de que la validación sea exitosa devolverá los datos validados y filtrados.
 
 ```php
 require 'EuroVal.php'; 
@@ -31,19 +33,12 @@ $nombre = $euroval->run(
   array('required','alphabetic','min_len,4'), //Validaciones
   array('filter_string')); //Filtros
 
-if($nombre == true){ // Los datos son correctos
+if(is_array($nombre)){ // Hubo algún error en la validación?
+	foreach ($nombre as $value) { 
+		echo $value;
+	}
+}else{ // Los datos validados no cuentan con errores
 	echo "El campo nombre es correcto";
-}else{ // Hay algún error en los datos  
-  echo "Ha ocurrido algún error al validar el campo";
-}
-```
-
-La librería dispone de una método con mensajes de error predeterminados contenidos en una estructura tipo *array()* para su manipulación
-```php
-if($nombre == true){ // Los datos son correctos
-  echo "El campo nombre es correcto";
-}else{ // Hay algún error en los datos  
-  var_dump($euroval->getErrors());
 }
 ```
 ## Validadores y Filtros disponibles
@@ -58,6 +53,8 @@ if($nombre == true){ // Los datos son correctos
 + float `Acepta números enteros y decimales`
 + email `Valida direcciones de email validas ejemplo@dominio.com`
 + date `Valida fechas validas dado un determinado formato como parametro`
++ file_exists `Verifica que el archivo sea requerido`
++ file_validate `Verifica que el archivo sea valido en extención y tamaño, también verifica que no exista ningun tipo de error al validarlo`
 
 #### Filtros
 + filter_string `Sanea una cadena de texto quitando caracteres especiales y entidades html`
@@ -91,16 +88,29 @@ si no se pasa ningun parametro el formato predeterminado será 'Y-m-d H:i:s' */
 
 array('date,Y/m/d') // Se tendrá que pasar una fecha de tipo '2015/01/01'
 ```
++ file_validate
+```php
+/* Valida que el archivo cuente con las especificacines requeridas: 
+
+array('file_validate,size,ruta,extencion1|extencion2')
+
+> size: Tamaño máximo del archivo expresado en kilobytes, ejemplo: 1024, 2048 ...
+> ruta: Ruta del sistema en donde se guardara el archivo subido, ejemplo: var/www/sistema/
+> extenciones: Extenciones permitidas para determinado archivo, ejemplo: application/ms_word
+*/
+// ejemplo: 
+// Valida un archivo de peso máximo de 1mb, con extenciones permitidas de archivo word o pdf
+array('file_validate,1024,var/www/sistema/,application/msword|application/pdf')
+```
 
 ## Métodos disponibles
 + run `Método para validar los datos pasando validadores y filtros`
-+ getErrors `Método para obtener los errores predeterminados proporcionados por la librería`
  
 #### Valores de retorno y parametros
 Función | Parametros | Retornos
 --- | --- | ---
 *run*| `Nombre del campo (string)`, `Dato(string)`, `Validadores(Array)`, `Filtros(Array)` | `True` o `False`
-*getErrors*| Ninguno | `Errores(Array)`
+
 
 
   

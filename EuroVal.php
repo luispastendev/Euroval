@@ -4,7 +4,7 @@
 * @author      Luis Pastén (https://www.facebook.com/luispastenpuntonet)
 * @copyright   Copyright (c) 2015 inifiniwebs.com
 * @link        https://github.com/Europpa
-* @version     1.0
+* @version     1.0.1
 */
 
 class EUROVAL{
@@ -20,16 +20,16 @@ class EUROVAL{
 	 * @param  array  $filtros        Array de filtros a realizar		
 	 * @return mixed                  Retorna true o false
 	 */
-	public function run($field, $data, array $validaciones, array $filtros){
+	public function run($field, $data, array $validaciones, array $filtros = array()){
 		unset($this->errors);
 		$this->validadores = $validaciones;
 		$this->filtros = $filtros;
 		$filter_data = $this->filtrar($data ,$this->filtros);
-		if($this->validar($filter_data, $field, $this->validadores) === false){
-			return false;
-			//return $this->getErrors($this->errors);
+		$validate_data =  $this->validar($filter_data, $field, $this->validadores);
+		if($validate_data === false){
+			return $this->getErrors($this->errors);
 		}
-		return true;
+		return $validate_data;
 	}
 	
 	/**
@@ -39,7 +39,7 @@ class EUROVAL{
 	 * @return mixed           Regresa el dato con los filtros aplicados
 	 * @throws exception       Filtros no existentes 
 	 */
-	protected function filtrar($input, array $filtros){
+	protected function filtrar($input, array $filtros = array()){
 		foreach ($filtros as $filtro) {
 			if(is_callable(array($this,$filtro))){
 				$input = $this->$filtro($input);
@@ -58,40 +58,39 @@ class EUROVAL{
 	 * @param  array  $params       Contiene los parametros en caso de existir
 	 * @return mixed                Retorna true si los datos son correctos o un array si existio algun error.
 	 */
-	protected function validar($input, $field, array $validadores, $params = NULL){
+	public function validar($input, $field, array $validadores){
 		$this->errors = array();
-		if (in_array('required', $validadores) && trim(empty($input)) || is_null(trim($input))) { // ¿el campo es requerido?
-			$this->errors[] = $this->required($input,$field,$params);
-		}else{
-			foreach($validadores as $validador){
-				$vali = NULL;
-				$method = NULL;
-				$params = NULL;
-				if(strstr($validador,',') !== false){ // tiene parametros
-					$vali = explode(',', $validador);
-	 				$method = $vali[0];
-	 				$params = $vali[1];
-	 				if(is_callable(array($this,$method))){
-	 					$resp = $this->$method($input,$field,$params);
-	 					if(is_array($resp)){
-	 						$this->errors[] = $resp;
-	 					}	 					
-	 				}else{
-	 					throw new Exception('No existe el validador');
-	 				}
-				}else{ // Cuando no tiene parametros
-					if(is_callable(array($this,$validador))){
-						$resp = $this->$validador($input,$field);
-						if(is_array($resp)){
-							$this->errors[] = $resp;
-						}
-					}else{
-						throw new Exception('No existe el validador');
+		foreach($validadores as $validador){
+			$vali = NULL;
+			$method = NULL;
+			$params = array();
+			if(strstr($validador,',') !== false){ // tiene parametros
+				$vali = explode(',', $validador);
+ 				$method = $vali[0];
+				for($n = 1; $n <= count($vali) - 1; $n++){
+					array_push($params, $vali[$n]); 
+				}
+				$params = implode(',', $params);
+ 				if(is_callable(array($this,$method))){
+ 					$resp = $this->$method($input,$field,$params);
+ 					if(is_array($resp)){
+ 						$this->errors[] = $resp;
+ 	 				}
+ 				}else{
+ 					throw new Exception('No existe el validador');
+ 				}
+			}else{ // Cuando no tiene parametros
+				if(is_callable(array($this,$validador))){
+					$resp = $this->$validador($input,$field);
+					if(is_array($resp)){
+						$this->errors[] = $resp;
 					}
+				}else{
+					throw new Exception('No existe el validador');
 				}
 			}
 		}	
-		return count($this->errors) > 0 ? false : true;
+		return count($this->errors) > 0 ? false : $input;
 	}
 
 	/*--------------------------------------------------------------------*/
@@ -106,7 +105,7 @@ class EUROVAL{
 	 * @return Mixed            Regresa true si no es vacio de lo contrario un array de error
 	 */
 	protected function required($input, $field, $params = null){
-		if(!is_null(trim($input)) && !trim(empty($input))){
+		if(!is_null(trim($input)) && !empty(trim($input))){
 			return true;
 		}else{
 			return array(
@@ -123,6 +122,9 @@ class EUROVAL{
 	 * @return mixed            True o array de errores
 	 */
 	protected function alpha_numeric($input, $field, $params = null){
+		if(empty($input)){
+			return true;
+		}
 		if(preg_match("/^([a-z0-9ÀÁÂÃÄÅÇÈÉÊËÌÍÎÏÒÓÔÕÖÙÚÛÜÝàáâãäåçèéêëìíîïðòóôõöùúûüýÿ])+$/i", $input)){
 			return true;	
 		}else{
@@ -140,6 +142,9 @@ class EUROVAL{
 	 * @return mixed       True o array de errores  
 	 */	
 	protected function alpha_spaces($input, $field, $params = null){
+		if(empty($input)){
+			return true;
+		}
 		if (preg_match("/^([a-z0-9ÀÁÂÃÄÅÇÈÉÊËÌÍÎÏÒÓÔÕÖÙÚÛÜÝàáâãäåçèéêëìíîïðòóôõöùúûüýÿ\s])+$/i", $input)){
 			return true;
 		}else{
@@ -157,6 +162,9 @@ class EUROVAL{
 	  * @return Mixed           True o array de errores
 	  */
 	protected function alphabetic($input, $field, $params = null){
+		if(empty($input)){
+			return true;
+		}
 		if (preg_match("/^([a-zÀÁÂÃÄÅÇÈÉÊËÌÍÎÏÒÓÔÕÖÙÚÛÜÝàáâãäåçèéêëìíîïðòóôõöùúûüýÿ\s])+$/i", $input)){
 			return true;
 		}else{
@@ -174,6 +182,9 @@ class EUROVAL{
 	 * @return mixed            True si cuenta con longitud minima. de lo contrario array de error
 	 */
 	protected function min_len($input, $field, $params = null){
+		if(empty($input)){
+			return true;
+		}
 		if(mb_strlen($input) >= (int)$params){
 			return true;
 		}else{
@@ -192,6 +203,9 @@ class EUROVAL{
 	 * @return mixed           True o Array
 	 */
 	protected function max_len($input, $field, $params = null){
+		if(empty($input)){
+			return true;
+		}
 		if(mb_strlen($input) <= (int)$params){
 			return true;
 		}else{
@@ -210,6 +224,9 @@ class EUROVAL{
 	 * @return Mixed         	True o array
 	 */
 	protected function integer($input, $field, $params = null){
+		if(empty(trim($input))){
+			return true;
+		}
 		if(filter_var($input, FILTER_VALIDATE_INT)){
 			return true;
 		}else{
@@ -228,6 +245,9 @@ class EUROVAL{
 	 * @return mixed           True o array
 	 */
 	protected function float($input, $field, $params = null){
+		if(empty($input)){
+			return true;
+		}
 		if(filter_var($input, FILTER_VALIDATE_FLOAT)){
 			return true;
 		}else{
@@ -247,6 +267,9 @@ class EUROVAL{
 	 * @return mixed            True o array
 	 */
 	protected function email($input, $field, $params = null){
+		if(empty($input)){
+			return true;
+		}
 		if(filter_var($input, FILTER_VALIDATE_EMAIL)){
 			return true;
 		}else{
@@ -265,6 +288,9 @@ class EUROVAL{
 	 * @return mixed            True o array de errores
 	 */
 	protected function date($input, $field, $params = 'Y-m-d H:i:s'){
+		if(empty($input)){
+			return true;
+		}
     	$date = DateTime::createFromFormat($params, $input);
     	if($date && $date->format($params) == $input){
     		return true;
@@ -274,6 +300,68 @@ class EUROVAL{
     			'field' => $field
     			);
     	}
+	}
+
+	/**
+	 * Verifica que se hay enviado el campo de tipo archivo
+	 * @param  file   $input  Datos sobre el archivo
+	 * @param  string $field  Nombre del campo
+	 * @return Mixed          Retorna array o true
+	 */
+	protected function file_exists($input, $field, $params = null){
+		if($input['error'] !== 4){
+			return true;
+		}else{
+			return array(
+				'error' => 'file_exists',
+				'field' => $field
+				);
+		}
+	}
+
+	/**
+	 * Valida que el archivo sea correcto en tamaño, formato y guardado
+	 * @param  file   $input  Archivo
+	 * @param  string $field  Nombre del archivo
+	 * @param  string $params Cadena de parametros separados por ","
+	 * @return mixed          Retorna true o array 
+	 */
+	protected function file_validate($input, $field, $params = null){
+		if($input['error'] == 4){
+			return true;
+		}else{
+			$params = explode(',', $params);
+			$size = $params[0];
+			$ruta = $params[1];
+			$formatos = explode('|', $params[2]);
+			if(!$input['error'] > 0){
+               	if(in_array($input['type'], $formatos)){
+            		if($input['size'] <= ($size * 1024)){
+	                	$ruta = $ruta . $input['name'];
+	                	$upload = @move_uploaded_file($input['tmp_name'], $ruta);
+	                	if($upload){
+		                    return true;
+	    	            }
+		        	    return array(
+							'error' => 'file_validate_upload',
+							'field' => $field
+						);
+            		}
+            		return array(
+						'error' => 'file_validate_size',
+						'field' => $field
+					);	
+            	}
+            	return array(
+				'error' => 'file_validate_format',
+				'field' => $field
+				);
+        	}
+        	return array(
+				'error' => 'file_validate_problem',
+				'field' => $field
+			);
+		}
 	}
 
 	/*--------------------------------------------------------------------*/
@@ -325,7 +413,7 @@ class EUROVAL{
 	 * @param  array  $errors Array de errores y parametros necesarios
 	 * @return Array          Regresa un array con los mensajes de error legibles
 	 */
-	public function getErrors(){
+	protected function getErrors(){
 		$resp = array();
 		foreach ($this->errors as $val) {
 			switch($val['error']){
@@ -358,6 +446,21 @@ class EUROVAL{
 				break;
 				case 'date':
 					$resp[$val['error']] = 'El campo '.$val['field'].' tiene un formato incorrecto';
+				break;
+				case 'file_exists':
+					$resp[$val['error']] = 'No subio ningun archivo '.$val['field'];
+				break;
+				case 'file_validate_problem':
+					$resp[$val['error']] = 'El archivo '.$val['field'].' ha tenido algun problema';
+				break;
+				case 'file_validate_format':
+					$resp[$val['error']] = 'El archivo '.$val['field'].' no cuenta con una extension valida';
+				break;
+				case 'file_validate_size':
+					$resp[$val['error']] = 'El archivo '.$val['field'].' es muy grande';
+				break;
+				case 'file_validate_upload':
+					$resp[$val['error']] = 'El archivo '.$val['field'].' no fue subido a la carpeta destino	';
 				break;
 			}	
 		}
