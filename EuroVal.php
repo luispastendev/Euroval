@@ -332,20 +332,11 @@ class EUROVAL{
 		}else{
 			$params = explode(',', $params);
 			$size = $params[0];
-			$ruta = $params[1];
-			$formatos = explode('|', $params[2]);
+			$formatos = explode('|', $params[1]);
 			if(!$input['error'] > 0){
                	if(in_array($input['type'], $formatos)){
             		if($input['size'] <= ($size * 1024)){
-	                	$ruta = $ruta . $input['name'];
-	                	$upload = @move_uploaded_file($input['tmp_name'], $ruta);
-	                	if($upload){
-		                    return true;
-	    	            }
-		        	    return array(
-							'error' => 'file_validate_upload',
-							'field' => $field
-						);
+	                	return true; 
             		}
             		return array(
 						'error' => 'file_validate_size',
@@ -459,9 +450,7 @@ class EUROVAL{
 				case 'file_validate_size':
 					$resp[$val['error']] = 'El archivo '.$val['field'].' es muy grande';
 				break;
-				case 'file_validate_upload':
-					$resp[$val['error']] = 'El archivo '.$val['field'].' no fue subido a la carpeta destino	';
-				break;
+				
 			}	
 		}
 		return $resp;

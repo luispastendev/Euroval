@@ -92,15 +92,14 @@ array('date,Y/m/d') // Se tendrá que pasar una fecha de tipo '2015/01/01'
 ```php
 /* Valida que el archivo cuente con las especificacines requeridas: 
 
-array('file_validate,size,ruta,extencion1|extencion2')
+array('file_validate,size,extencion1|extencion2')
 
 > size: Tamaño máximo del archivo expresado en kilobytes, ejemplo: 1024, 2048 ...
-> ruta: Ruta del sistema en donde se guardara el archivo subido, ejemplo: var/www/sistema/
 > extenciones: Extenciones permitidas para determinado archivo, ejemplo: application/ms_word
 */
 // ejemplo: 
 // Valida un archivo de peso máximo de 1mb, con extenciones permitidas de archivo word o pdf
-array('file_validate,1024,var/www/sistema/,application/msword|application/pdf')
+array('file_validate,1024,application/msword|application/pdf')
 ```
 
 ## Métodos disponibles

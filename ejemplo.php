@@ -7,6 +7,7 @@ define('DS', DIRECTORY_SEPARATOR); // Separador de direcctorios
 define('ROOT', realpath(dirname(__FILE__)) . DS); // Ruta del sistema
 define('IMAGES', ROOT . 'imagenes' . DS); // Ruta de la carpeta donde se guardarán los archivos
 
+
 try { // Usar try - catch para agarrar las posibles excepciones emitidas por la libreria
 	$nombre = $euroval->run(
 		'Nombre', // Nombre del campo    						 			 
@@ -16,10 +17,18 @@ try { // Usar try - catch para agarrar las posibles excepciones emitidas por la 
 		);
 	var_dump($nombre);
 
+	$fecha = $euroval->run(
+		'Fecha',
+		$_POST['fecha'],
+		array('required','date,Y-m-d'),
+		array()
+		);
+	var_dump($fecha);
+
 	$archivo = $euroval->run(
 		'Archivo',
 		$_FILES['archivo'],
-		array('file_validate,1024,'.IMAGES.',application/msword|application/pdf|application/vnd.openxmlformats-officedocument.wordprocessingml.document'),
+		array('file_exists','file_validate,1024,application/msword|application/pdf|application/vnd.openxmlformats-officedocument.wordprocessingml.document'),
 		array()
 		);
 	var_dump($archivo);
